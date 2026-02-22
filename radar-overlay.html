@@ -5,50 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Radar Overlay</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-        #radar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-        }
-        .blip {
-            position: absolute;
-            border-radius: 50%;
-            background: red;
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.5); }
-            100% { transform: scale(1); }
-        }
+        body { margin: 0; }
+        #radarCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent, rgba(0,0,0,0.5)); }
+        .sweep-beam { position: absolute; top: 50%; left: 50%; width: 200%; height: 200%; border-radius: 50%; background: rgba(0, 255, 0, 0.5); transform-origin: center; animation: rotate 10s linear infinite; }
+        @keyframes rotate { from { transform: rotate(0); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div id="radar"></div>
+    <canvas id="radarCanvas"></canvas>
+    <div class="vignette"></div>
+    <div class="sweep-beam"></div>
+
     <script>
-        const radar = document.getElementById('radar');
-        function createBlip(x, y) {
-            const blip = document.createElement('div');
-            blip.className = 'blip';
-            blip.style.width = '10px';
-            blip.style.height = '10px';
-            blip.style.left = `${x}px`;
-            blip.style.top = `${y}px`;
-            radar.appendChild(blip);
-            setTimeout(() => blip.remove(), 2000);
+        function onWidgetLoad() {
+            // Initialize Leaflet Map
+            var map = L.map('radarCanvas').setView([0, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            
+            // Geolocation using ipapi
+            fetch('http://api.ipapi.com/api/check?access_key=YOUR_ACCESS_KEY')
+                .then(response => response.json())
+                .then(data => {
+                    var latitude = data.latitude;
+                    var longitude = data.longitude;
+                    map.setView([latitude, longitude], 10);
+                });
+            
+            // Weather radar tiles integration
+            // Example: Fetch and add radar tiles here
+            // TODO: Add your radar tile layer
         }
-        setInterval(() => {
-            const x = Math.random() * window.innerWidth;
-            const y = Math.random() * window.innerHeight;
-            createBlip(x, y);
-        }, 500);
+
+        // Auto-refresh every 10 minutes
+        setInterval(onWidgetLoad, 600000);
+        window.addEventListener('load', onWidgetLoad);
     </script>
 </body>
 </html>
