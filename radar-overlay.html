@@ -3,31 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Radar Overlay</title>
+    <title>Radar Overlay</title>
     <style>
-        body { margin: 0; }
-        #radarCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        #overlay { position: absolute; top: 0; left: 0; color: white; font-weight: bold; }
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #radar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .blip {
+            position: absolute;
+            border-radius: 50%;
+            background: red;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
-    <canvas id="radarCanvas"></canvas>
-    <div id="overlay">Live Radar Overlay</div>
+    <div id="radar"></div>
     <script>
-        const canvas = document.getElementById('radarCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        function drawRadar() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.5)'; // green overlay
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Simulate radar animation
-            requestAnimationFrame(drawRadar);
+        const radar = document.getElementById('radar');
+        function createBlip(x, y) {
+            const blip = document.createElement('div');
+            blip.className = 'blip';
+            blip.style.width = '10px';
+            blip.style.height = '10px';
+            blip.style.left = `${x}px`;
+            blip.style.top = `${y}px`;
+            radar.appendChild(blip);
+            setTimeout(() => blip.remove(), 2000);
         }
-
-        drawRadar(); // Start drawing the radar animation
+        setInterval(() => {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            createBlip(x, y);
+        }, 500);
     </script>
 </body>
 </html>
