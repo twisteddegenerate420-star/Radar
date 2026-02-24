@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRL Pro Radar Overlay</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: transparent; /* Makes it clear in OBS/IRL Pro */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: monospace;
+        }
+
+        #radarContainer {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 40, 0, 0.6) 0%, rgba(0, 10, 0, 0.8) 100%);
+            border-radius: 50%;
+            border: 2px solid #00FF00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+            overflow: hidden;
+        }
+
+        /* Vague Map Grid Effect */
+        #radarContainer::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            border-radius: 50%;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="radarContainer">
+    <canvas id="radarCanvas" width="400" height="400"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('radarCanvas');
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 190;
+    let angle = 0;
+
+    function drawRadar() {
+        // 1. Clear with trail effect
+        ctx.fillStyle = 'rgba(0, 15, 0, 0.15)'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Draw Radar Rings
+        ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, (radius / 3) * i, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // 3. Draw the
