@@ -1,143 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Callahan Tactical Radar Final</title>
+    <title>Callahan Tactical Radar</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
-        
         #radar-wrapper {
-            position: absolute; 
-            bottom: 15px; 
-            right: 15px;
-            width: 260px; 
-            height: 260px; 
-            border: 3px solid #00FF00;
-            border-radius: 50%;
-            overflow: hidden;
-            background: #000; /* Black background for better contrast */
+            position: absolute; bottom: 15px; right: 15px;
+            width: 260px; height: 260px;
+            border: 3px solid #00FF00; border-radius: 50%;
+            overflow: hidden; background: #000;
             box-shadow: 0 0 20px rgba(0, 0, 0, 1);
         }
-
         #map { width: 100%; height: 100%; border-radius: 50%; z-index: 1; }
-
-        #header-arch {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1030;
-            pointer-events: none;
-        }
-
+        #header-arch { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1030; pointer-events: none; }
+        
         #live-status {
-            position: absolute;
-            bottom: 8px; 
-            width: 100%;
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1020;
-            font-family: 'Arial Black', sans-serif;
-            font-size: 11px; 
-            color: #FF0000;
-            text-transform: uppercase;
-            text-shadow: 1px 1px 2px #000;
-            pointer-events: none;
+            position: absolute; bottom: 8px; width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1020; font-family: 'Arial Black', sans-serif;
+            text-transform: uppercase; text-shadow: 1px 1px 2px #000; pointer-events: none;
         }
 
+        #alert-text {
+            font-size: 10px; font-weight: bold; margin-bottom: 2px;
+            letter-spacing: 1px; height: 12px;
+        }
+
+        .radar-label { display: flex; align-items: center; font-size: 11px; color: #FF0000; }
         .red-dot {
-            width: 7px; height: 7px;
-            background-color: #FF0000; border-radius: 50%;
+            width: 7px; height: 7px; background-color: #FF0000; border-radius: 50%;
             margin-right: 5px; box-shadow: 0 0 6px #FF0000;
             animation: live-blink 1s steps(2, start) infinite;
         }
-
         @keyframes live-blink { to { visibility: hidden; } }
-
         #sweep {
             position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             pointer-events: none; z-index: 1001;
             background: conic-gradient(from 0deg, transparent 0%, rgba(0, 255, 0, 0.05) 80%, rgba(0, 255, 0, 0.3) 100%);
             animation: rotate-clockwise 6s linear infinite;
         }
-
         @keyframes rotate-clockwise { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
         .ping {
-            width: 10px; height: 10px;
-            background: #00FF00; border-radius: 50%;
-            box-shadow: 0 0 10px #00FF00;
-            animation: blink 1.2s ease-in-out infinite;
+            width: 10px; height: 10px; background: #00FF00; border-radius: 50%;
+            box-shadow: 0 0 10px #00FF00; animation: blink 1.2s ease-in-out infinite;
         }
-
-        @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform : scale(1.2); } }
+        @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } }
     </style>
 </head>
 <body>
-
-<div id="radar-wrapper">
-    <svg id="header-arch" viewBox="0 0 260 260">
-        <defs>
-            <path id="top-curve" d="M 30,120 A 100,100 0 0,1 230,120" />
-        </defs>
-        <text fill="#32CD32" 
-              stroke="#000000" 
-              stroke-width="3" 
-              paint-order="stroke"
-              font-family="Arial Black" 
-              font-size="16" 
-              font-weight="bold" 
-              letter-spacing="2">
-            <textPath xlink:href="#top-curve" startOffset="50%" text-anchor="middle">
-                CALLAHAN'S DISPATCH
-            </textPath>
-        </text>
-    </svg>
-
-    <div id="live-status">
-        <div class="red-dot"></div>
-        Live Radar
+    <div id="radar-wrapper">
+        <svg id="header-arch" viewBox="0 0 260 260">
+            <defs><path id="top-curve" d="M 30,120 A 100,100 0 0,1 230,120" /></defs>
+            <text fill="#32CD32" stroke="#000000" stroke-width="3" paint-order="stroke" font-family="Arial Black" font-size="16" font-weight="bold" letter-spacing="2">
+                <textPath xlink:href="#top-curve" startOffset="50%" text-anchor="middle">CALLAHAN'S DISPATCH</textPath>
+            </text>
+        </svg>
+        <div id="live-status">
+            <div id="alert-text"></div>
+            <div class="radar-label"><div class="red-dot"></div>Live Radar</div>
+        </div>
+        <div id="sweep"></div>
+        <div id="map"></div>
     </div>
 
-    <div id="sweep"></div>
-    <div id="map"></div>
-</div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false }).setView([39.8, -98.5], 5);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png').addTo(map);
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    const map = L.map('map', {
-        zoomControl: false, attributionControl: false,
-        dragging: false, scrollWheelZoom: false
-    }).setView([39.8, -98.5], 5); 
+        async function updateWeather() {
+            try {
+                const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+                const data = await res.json();
+                const latest = data.radar.past[data.radar.past.length - 1].path;
+                if (window.radarLayer) map.removeLayer(window.radarLayer);
+                window.radarLayer = L.tileLayer(`${data.host}${latest}/256/{z}/{x}/{y}/4/1_1.png`, { opacity: 0.6, zIndex: 500 }).addTo(map);
+            } catch (e) { }
+        }
 
-    // Using a darker Voyager variant for that tactical look
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png').addTo(map);
+        async function updateAlerts() {
+            try {
+                // Now fetching ALL active alerts regardless of type
+                const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert`);
+                const data = await res.json();
+                const alertDiv = document.getElementById('alert-text');
+                if (window.alertLayer) map.removeLayer(window.alertLayer);
+                
+                if (data.features.length > 0) {
+                    const top = data.features[0].properties.event;
+                    alertDiv.innerText = top;
+                    
+                    // Colors remain tactical based on category
+                    if (top.includes('Tornado')) alertDiv.style.color = '#FF0000';
+                    else if (top.includes('Blizzard') || top.includes('Winter') || top.includes('Snow')) alertDiv.style.color = '#9900FF';
+                    else if (top.includes('Thunderstorm')) alertDiv.style.color = '#FFFF00';
+                    else if (top.includes('Watch')) alertDiv.style.color = '#00FFFF';
+                    else if (top.includes('Flood')) alertDiv.style.color = '#2E8B57'; // Greenish for Floods
+                    else alertDiv.style.color = '#FFA500'; // Orange for Wind/Heat/Other
+                } else { alertDiv.innerText = ''; }
 
-    async function updateWeather() {
-        try {
-            const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
-            const data = await res.json();
-            const latest = data.radar.past[data.radar.past.length - 1].path;
-            L.tileLayer(`${data.host}${latest}/256/{z}/{x}/{y}/4/1_1.png`, {
-                opacity: 0.6, zIndex: 500
-            }).addTo(map);
-        } catch (e) { console.log("Radar update error"); }
-    }
+                window.alertLayer = L.geoJSON(data, {
+                    style: (f) => {
+                        const ev = f.properties.event;
+                        let c = '#FFA500';
+                        if (ev.includes('Tornado')) c = '#FF0000';
+                        else if (ev.includes('Blizzard') || ev.includes('Winter')) c = '#9900FF';
+                        else if (ev.includes('Thunderstorm')) c = '#FFFF00';
+                        else if (ev.includes('Watch')) c = '#00FFFF';
+                        return { color: c, weight: 2, fillOpacity: 0.15, dashArray: '3, 6' };
+                    }
+                }).addTo(map);
+            } catch (e) { }
+        }
 
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition((p) => {
-            const lat = p.coords.latitude;
-            const lon = p.coords.longitude;
-            map.panTo([lat, lon], {animate: true, duration: 2.0}); 
-            
-            if (window.truckMarker) map.removeLayer(window.truckMarker);
-            const icon = L.divIcon({ className: 'ping', iconSize: [10, 10] });
-            window.truckMarker = L.marker([lat, lon], { icon: icon }).addTo(map);
-        }, null, { enableHighAccuracy: true });
-    }
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition((p) => {
+                map.panTo([p.coords.latitude, p.coords.longitude], { animate: true, duration: 2.0 });
+                if (window.truckMarker) map.removeLayer(window.truckMarker);
+                window.truckMarker = L.marker([p.coords.latitude, p.coords.longitude], { icon: L.divIcon({ className: 'ping', iconSize: [10, 10] }) }).addTo(map);
+            }, null, { enableHighAccuracy: true });
+        }
 
-    updateWeather();
-    setInterval(updateWeather, 600000);
-</script>
+        updateWeather(); updateAlerts();
+        setInterval(updateWeather, 600000); setInterval(updateAlerts, 300000);
+    </script>
 </body>
 </html>
