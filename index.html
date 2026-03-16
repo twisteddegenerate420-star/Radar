@@ -81,38 +81,43 @@
         }
 
         async function updateAlerts() {
-            try {
-                // Now fetching ALL active alerts regardless of type
-                const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&message_type=alert`);
-                const data = await res.json();
-                const alertDiv = document.getElementById('alert-text');
-                if (window.alertLayer) map.removeLayer(window.alertLayer);
-                
-                if (data.features.length > 0) {
-                    const top = data.features[0].properties.event;
-                    alertDiv.innerText = top;
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const lat = pos.coords.latitude.toFixed(4);
+                    const lon = pos.coords.longitude.toFixed(4);
+                    const res = await fetch(`https://api.weather.gov/alerts/active?point=${lat},${lon}`);
+                    const data = await res.json();
+                    const alertDiv = document.getElementById('alert-text');
                     
-                    // Colors remain tactical based on category
-                    if (top.includes('Tornado')) alertDiv.style.color = '#FF0000';
-                    else if (top.includes('Blizzard') || top.includes('Winter') || top.includes('Snow')) alertDiv.style.color = '#9900FF';
-                    else if (top.includes('Thunderstorm')) alertDiv.style.color = '#FFFF00';
-                    else if (top.includes('Watch')) alertDiv.style.color = '#00FFFF';
-                    else if (top.includes('Flood')) alertDiv.style.color = '#2E8B57'; // Greenish for Floods
-                    else alertDiv.style.color = '#FFA500'; // Orange for Wind/Heat/Other
-                } else { alertDiv.innerText = ''; }
-
-                window.alertLayer = L.geoJSON(data, {
-                    style: (f) => {
-                        const ev = f.properties.event;
-                        let c = '#FFA500';
-                        if (ev.includes('Tornado')) c = '#FF0000';
-                        else if (ev.includes('Blizzard') || ev.includes('Winter')) c = '#9900FF';
-                        else if (ev.includes('Thunderstorm')) c = '#FFFF00';
-                        else if (ev.includes('Watch')) c = '#00FFFF';
-                        return { color: c, weight: 2, fillOpacity: 0.15, dashArray: '3, 6' };
+                    if (window.alertLayer) map.removeLayer(window.alertLayer);
+                    
+                    if (data.features && data.features.length > 0) {
+                        const top = data.features[0].properties.event;
+                        alertDiv.innerText = top;
+                        
+                        if (top.includes('Tornado')) alertDiv.style.color = '#FF0000';
+                        else if (top.includes('Blizzard') || top.includes('Winter')) alertDiv.style.color = '#9900FF';
+                        else if (top.includes('Thunderstorm')) alertDiv.style.color = '#FFFF00';
+                        else if (top.includes('Watch')) alertDiv.style.color = '#00FFFF';
+                        else alertDiv.style.color = '#FFA500';
+                    } else {
+                        alertDiv.innerText = '';
                     }
-                }).addTo(map);
-            } catch (e) { }
+
+                    window.alertLayer = L.geoJSON(data, {
+                        style: (f) => {
+                            const ev = f.properties.event;
+                            let c = '#FFA500';
+                            if (ev.includes('Tornado')) c = '#FF0000';
+                            else if (ev.includes('Blizzard') || ev.includes('Winter')) c = '#9900FF';
+                            else if (ev.includes('Thunderstorm')) c = '#FFFF00';
+                            else if (ev.includes('Watch')) c = '#00FFFF';
+                            return { color: c, weight: 3, fillOpacity: 0.2, dashArray: '5, 5' };
+                        }
+                    }).addTo(map);
+                } catch (e) { }
+            });
         }
 
         if (navigator.geolocation) {
